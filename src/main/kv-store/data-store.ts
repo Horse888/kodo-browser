@@ -45,9 +45,9 @@ export class DataStore<T> {
 
   constructor({
     workingDirectory,
-    thresholdDuration,
-    thresholdSize,
-    thresholdChangesSize,
+    thresholdDuration, // ms, trigger compact when thresholdDuration elapsed after last compact
+    thresholdSize, // trigger compact when memTable size exceeds thresholdSize
+    thresholdChangesSize, // trigger compact when memTable changes size exceeds thresholdChangesSize
 
     memTable,
     memTableReadOnly,
@@ -393,9 +393,25 @@ export async function getDataStoreOrCreate<T>({
         wal: frameMeta.memTableReadonlyWALPath,
       })
       : null;
-    diskTable = new DiskTable<T>({
-      filePath: frameMeta.diskTableFilePath,
-    });
+    let isFileExists: boolean = false;
+    if (frameMeta.diskTableFilePath) {
+      isFileExists = await fsPromises.access(
+        frameMeta.diskTableFilePath,
+        fsConstants.F_OK,
+      )
+        .then(() => true)
+        .catch(() => false);
+    }
+    if (!isFileExists) {
+      diskTable = await createDiskTable({
+        filePath: frameMeta.diskTableFilePath,
+        values: new Set<[string, T]>().values(),
+      });
+    } else {
+      diskTable = new DiskTable<T>({
+        filePath: frameMeta.diskTableFilePath,
+      });
+    }
   } else {
     const tables = await initDataStore<T>(workingDirectory);
     memTable = tables.memTable;

@@ -98,7 +98,10 @@ export default class DownloadManager extends TransferManager<DownloadJob, Config
     }
 
     async loadJobsFromStorage(
-        clientOptions: Pick<ClientOptions, "accessKey" | "secretKey" | "ucUrl" | "regions">,
+        clientOptions: Pick<
+            ClientOptions,
+            "accessKey" | "secretKey" | "sessionToken" | "bucketNameId" | "ucUrl" | "regions"
+        >,
         downloadOptions: Pick<DownloadOptions, "userNatureLanguage">,
     ): Promise<void> {
         const persistStore = await this.getPersistStore();
@@ -122,7 +125,10 @@ export default class DownloadManager extends TransferManager<DownloadJob, Config
     private async loadJob(
         jobId: string,
         persistedJob: DownloadJob["persistInfo"],
-        clientOptions: Pick<ClientOptions, "accessKey" | "secretKey" | "ucUrl" | "regions">,
+        clientOptions: Pick<
+            ClientOptions,
+            "accessKey" | "secretKey" | "sessionToken" | "bucketNameId" | "ucUrl" | "regions"
+        >,
         downloadOptions: Pick<DownloadOptions, "userNatureLanguage">,
     ): Promise<void> {
         if (this.jobs.get(jobId)) {
@@ -287,6 +293,7 @@ export default class DownloadManager extends TransferManager<DownloadJob, Config
             overwrite: downloadOptions.isOverwrite,
             region: downloadOptions.region,
             domain: downloadOptions.domain,
+            urlStyle: downloadOptions.urlStyle,
 
             multipartDownloadThreshold: this.config.multipartThreshold,
             multipartDownloadSize: this.config.multipartSize,

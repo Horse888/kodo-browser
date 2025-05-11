@@ -1,7 +1,20 @@
 import * as qiniuPathConvertor from "qiniu-path/dist/src/convert";
 import { Path as QiniuPath } from "qiniu-path/dist/src/path";
-import { Adapter, Domain, FrozenInfo, ObjectInfo, PartialObjectError, StorageClass, TransferObject } from 'kodo-s3-adapter-sdk/dist/adapter'
+import {
+  Adapter,
+  Domain,
+  FrozenInfo,
+  ObjectInfo,
+  PartialObjectError,
+  StorageClass,
+  TransferObject,
+  UrlStyle,
+} from 'kodo-s3-adapter-sdk/dist/adapter'
+
+import {BackendMode} from "@common/qiniu";
 import Duration from "@common/const/duration";
+
+import {EndpointType} from "@renderer/modules/auth";
 
 import * as FileItem from "./file-item";
 
@@ -209,6 +222,7 @@ export async function getContent(
     bucket: string,
     key: QiniuPath | string,
     domain: Domain | undefined,
+    style: UrlStyle | undefined,
     opt: GetAdapterOptionParam,
 ):Promise<Buffer> {
     return await getDefaultClient(opt).enter("getContent", async client => {
@@ -219,6 +233,7 @@ export async function getContent(
                 key: key.toString(),
             },
             domain,
+            style,
         );
         return obj.data;
     }, {
@@ -321,12 +336,34 @@ export async function restoreFile(
     });
 }
 
+export function getStyleForSignature({
+  domain,
+  preferBackendMode,
+  currentEndpointType,
+}: {
+  domain: Domain | undefined,
+  preferBackendMode: BackendMode | undefined,
+  currentEndpointType: EndpointType,
+}): UrlStyle {
+    if (domain?.apiScope === BackendMode.S3) {
+      return UrlStyle.BucketEndpoint;
+    } else if (!domain || preferBackendMode === BackendMode.S3) {
+      // some private cloud not support wildcard domain name resolving
+      return currentEndpointType === EndpointType.Public
+        ? UrlStyle.VirtualHost
+        : UrlStyle.Path;
+    } else {
+      return UrlStyle.BucketEndpoint;
+    }
+}
+
 export async function signatureUrl(
     region: string,
     bucket: string,
     key: QiniuPath | string,
     domain: Domain | undefined,
     expires: number, // seconds
+    style: UrlStyle,
     opt: GetAdapterOptionParam,
 ): Promise<URL> {
     const deadline = new Date();
@@ -341,6 +378,7 @@ export async function signatureUrl(
             },
             domain,
             deadline,
+            style,
         );
     }, {
         targetBucket: bucket,
@@ -884,6 +922,7 @@ export async function signatureUrls(
     items: FileItem.Item[],
     domain: Domain | undefined,
     expires: number,
+    style: UrlStyle,
     progressFn: (progress: Progress) => void,
     onEachSuccess: (file: FileItem.File, url: URL) => void,
     onError: (err: any) => void,
@@ -927,6 +966,7 @@ export async function signatureUrls(
               },
               domain,
               deadline,
+              style,
             );
             onEachSuccess(file, url);
             progressCallback(i, null);
@@ -942,4 +982,3 @@ export async function signatureUrls(
         return results;
     }
 }
-

@@ -244,6 +244,7 @@ export default class UploadManager extends TransferManager<UploadJob, Config> {
             },
 
             clientOptions,
+            accelerateUploading: uploadOptions.accelerateUploading,
             storageClasses: uploadOptions.storageClasses,
 
             overwrite: uploadOptions.isOverwrite,
@@ -270,7 +271,10 @@ export default class UploadManager extends TransferManager<UploadJob, Config> {
     }
 
     async loadJobsFromStorage(
-        clientOptions: Pick<ClientOptions, "accessKey" | "secretKey" | "ucUrl" | "regions">,
+        clientOptions: Pick<
+            ClientOptions,
+            "accessKey" | "secretKey" | "sessionToken" | "bucketNameId" | "ucUrl" | "regions"
+        >,
         uploadOptions: Pick<UploadOptions, "userNatureLanguage">,
     ): Promise<void> {
         const abortSignal = this.addingAbortController.signal;
@@ -299,7 +303,10 @@ export default class UploadManager extends TransferManager<UploadJob, Config> {
     private async loadJob(
         jobId: string,
         persistedJob: UploadJob["persistInfo"],
-        clientOptions: Pick<ClientOptions, "accessKey" | "secretKey" | "ucUrl" | "regions">,
+        clientOptions: Pick<
+            ClientOptions,
+            "accessKey" | "secretKey" | "sessionToken" | "bucketNameId" | "ucUrl" | "regions"
+        >,
         uploadOptions: Pick<UploadOptions, "userNatureLanguage">,
     ): Promise<void> {
         if (!persistedJob.from) {

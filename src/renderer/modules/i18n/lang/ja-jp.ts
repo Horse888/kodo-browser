@@ -28,6 +28,14 @@ const dict: Dictionary = {
         noDomainToGet: "オブジェクトを取得するためのドメインがない",
         errored: "エラーが発生しました",
         paused: "停止しました",
+        custom: "自定义",
+
+        second: "秒",
+        seconds: "秒",
+        minute: "分",
+        minutes: "分",
+        hour: "時間",
+        hours: "時間",
 
         directory: "フォルダ",
         upload: "アップロード",
@@ -42,10 +50,21 @@ const dict: Dictionary = {
         more: "もっと",
         exportLink: "ダウンロードアドレスを取得する",
         exportLinks: "ダウンロードリンクのエクスポート",
+        share: "共有",
         restore: "リストア",
         changeStorageClass: "ストレージクラスを設定する",
         unknownStorageClass: "不明なストレージクラス",
         clickToRetry: "再試行",
+    },
+
+    deepLinkActions: {
+        signIn: {
+            invalidParams: "URLが無効です。必要なパラメータが失われました。",
+            signOutConfirm: {
+                title: "ログアウト",
+                description: "共有URLでサインインしているため、ログアウトします。",
+            },
+        },
     },
 
     top: {
@@ -75,7 +94,10 @@ const dict: Dictionary = {
 
     signIn: {
         title: "Access Key ログイン",
+        titleShareLink: "共有リンクログイン",
         accessKeyHistory: "AK の歴史",
+        gotoShareLinkForm: "共有リンクを使用してログイン",
+        gotoAkForm: "AKを使用してログイン",
         form: {
             accessKeyId: {
                 holder: "AccessKeyId",
@@ -111,6 +133,23 @@ const dict: Dictionary = {
             },
             submit: "ログイン",
             submitting: "ログイン中",
+        },
+        formShareLink: {
+            shareLink: {
+                label: "共有リンク：",
+                holder: "フォルダの共有リンクを入力してください",
+                feedback: {
+                    invalidFormat: "リンクの形式が正しくありません",
+                    invalidPrivateFormat: "リンクの形式が正しくありません。非公開クラウドユーザーの場合は、プライベートクラウド共有アドレスを設定してください",
+                },
+            },
+            extractCode: {
+                label: "抽出コード：",
+                holder: "英数字のみ",
+                feedback: {
+                    invalidFormat: "英数字のみで、6文字でなければなりません",
+                },
+            },
         },
     },
 
@@ -206,6 +245,7 @@ const dict: Dictionary = {
             removeConfirmOk: "削除",
             unknownError: "不明なエラーです",
             fileDuplicated: "ファイルは既に存在",
+            accelerateUploading: "アップロードを加速する",
         },
         upload: {
             dropZone: {
@@ -703,6 +743,41 @@ const dict: Dictionary = {
             title: "ダウンロードリンクのエクスポート",
         },
 
+        createDirectoryShareLink: {
+            title: "フォルダを共有する",
+            form: {
+                directoryName: {
+                    label: "フォルダ：",
+                },
+                expireAfter: {
+                    label: "有効期限：",
+                    suffix: "秒",
+                    hint: "範囲：${minSeconds} - ${maxSeconds} 秒",
+                },
+                extractCode: {
+                    label: "抽出コード：",
+                    suffix: "ランダム生成",
+                    hint: "英数字のみで、6文字でなければなりません",
+                },
+                shareLink: {
+                    label: "共有リンク：",
+                },
+                expiredAt: {
+                    label: "失効時間：",
+                },
+            },
+            copyShareMessageButton: "リンクと抽出コードをコピー",
+            copyShareMessageSuccess: "コピーが成功しました",
+            shareMessage: [
+                "いくつかのファイルを共有しました、ご覧ください！",
+                "",
+                "${shareLink}",
+                "",
+                "抽出コード：${extractCode}",
+                "有効期限：${expiredAt}"
+            ].join("\n"),
+        },
+
         uploadConfirm: {
             title: "ファイルのアップロード",
             previewList: {
@@ -712,12 +787,22 @@ const dict: Dictionary = {
             form: {
                 isOverwrite: {
                     label: "上書き：",
-                    hint: "（今回の上書き）",
+                    hint: "（今回だけ）",
+                },
+                accelerateUploading: {
+                  label: "アップロードを加速する：",
+                  hint: "（今回だけ）",
+                  hintSecondary: "開いた後、アクセラレーションドメインを優先してアップロードします；アクセラレーションドメインを使用する場合、追加通信料金が発生します。",
                 },
                 storageClassKodoName: {
                     label: "保管タイプ：",
                 },
             },
+            popupHint: {
+              question: "すでにアクセラレーションドメインを有効にしましたが、アクセラレーションドメインを使用するスイッチが表示されませんか？",
+              clickHere: "こちらをクリック",
+              refreshIt: "リフレッシュしてみてください",
+            }
         },
 
         preview: {

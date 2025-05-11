@@ -29,6 +29,14 @@ export default interface Dictionary {
     downloading: string,
     downloaded: string,
     paused: string,
+    custom: string,
+
+    second: string,
+    seconds: string,
+    minute: string,
+    minutes: string,
+    hour: string,
+    hours: string,
 
     directory: string,
     upload: string,
@@ -41,10 +49,22 @@ export default interface Dictionary {
     more: string,
     exportLink: string,
     exportLinks: string,
+    share: string,
     restore: string,
     changeStorageClass: string,
     unknownStorageClass: string,
     clickToRetry: string,
+  },
+
+  // deep link actions
+  deepLinkActions: {
+    signIn: {
+      invalidParams: string,
+      signOutConfirm: {
+        title: string,
+        description: string,
+      },
+    },
   },
 
   // top
@@ -77,7 +97,10 @@ export default interface Dictionary {
   // signIn
   signIn: {
     title: string,
+    titleShareLink: string,
     accessKeyHistory: string,
+    gotoShareLinkForm: string,
+    gotoAkForm: string,
     form: {
       endpoint: {
         label: string,
@@ -113,6 +136,23 @@ export default interface Dictionary {
       },
       submit: string,
       submitting: string,
+    },
+    formShareLink: {
+      shareLink: {
+        label: string,
+        holder: string,
+        feedback: {
+          invalidFormat: string,
+          invalidPrivateFormat: string,
+        },
+      },
+      extractCode: {
+        label: string,
+        holder: string,
+        feedback: {
+          invalidFormat: string,
+        },
+      },
     },
   },
 
@@ -212,6 +252,7 @@ export default interface Dictionary {
       removeConfirmOk: string,
       unknownError: string,
       fileDuplicated: string,
+      accelerateUploading: string,
     },
     upload: {
       dropZone: {
@@ -705,6 +746,34 @@ export default interface Dictionary {
       title: string,
     },
 
+    createDirectoryShareLink: {
+      title: string,
+      form: {
+        directoryName: {
+          label: string,
+        },
+        expireAfter: {
+          label: string,
+          suffix: string,
+          hint: string,
+        },
+        extractCode: {
+          label: string,
+          suffix: string,
+          hint: string,
+        },
+        shareLink: {
+          label: string,
+        },
+        expiredAt: {
+          label: string,
+        },
+      },
+      copyShareMessageButton: string,
+      copyShareMessageSuccess: string,
+      shareMessage: string,
+    }
+
     uploadConfirm: {
       title: string,
       previewList: {
@@ -716,10 +785,20 @@ export default interface Dictionary {
           label: string,
           hint: string,
         },
+        accelerateUploading: {
+          label: string,
+          hint: string,
+          hintSecondary: string,
+        },
         storageClassKodoName: {
           label: string,
         },
       },
+      popupHint: {
+        question: string,
+        clickHere: string,
+        refreshIt: string,
+      }
     },
 
     preview: {

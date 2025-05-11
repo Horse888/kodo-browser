@@ -14,14 +14,16 @@ import {useAuth} from "@renderer/modules/auth";
 import {KodoNavigator, useKodoNavigator} from "@renderer/modules/kodo-address";
 import {ContentViewStyle, appPreferences, useEndpointConfig} from "@renderer/modules/user-config-store";
 
-import {BucketItem, FileItem} from "@renderer/modules/qiniu-client";
-import {DomainAdapter, useLoadDomains, useLoadFiles} from "@renderer/modules/qiniu-client-hooks";
+import {BucketItem, FileItem, getStyleForSignature, isAccelerateUploadingAvailable} from "@renderer/modules/qiniu-client";
+import {DomainAdapter, NON_OWNED_DOMAIN, useLoadDomains, useLoadFiles} from "@renderer/modules/qiniu-client-hooks";
 import ipcDownloadManager from "@renderer/modules/electron-ipc-manages/ipc-download-manager";
 import * as AuditLog from "@renderer/modules/audit-log";
+import {useFileOperation} from "@renderer/modules/file-operation";
 
 import DropZone from "@renderer/components/drop-zone";
 import {useDisplayModal, useIsShowAnyModal} from "@renderer/components/modals/hooks";
 import UploadFilesConfirm from "@renderer/components/modals/file/upload-files-confirm";
+import ipcUploadManager from "@renderer/modules/electron-ipc-manages/ipc-upload-manager";
 
 import FileToolBar from "./file-tool-bar";
 import FileContent from "./file-content";
@@ -35,7 +37,11 @@ interface FilesProps {
 
 const Files: React.FC<FilesProps> = (props) => {
   const {currentLanguage, translate} = useI18n();
-  const {currentUser} = useAuth();
+  const {currentUser, shareSession} = useAuth();
+  const {
+    bucketPreferBackendMode: preferBackendMode,
+    bucketGrantedPermission,
+  } = useFileOperation();
 
   const {
     state: appPreferencesState,
@@ -47,7 +53,7 @@ const Files: React.FC<FilesProps> = (props) => {
 
   const {
     endpointConfigData,
-  } = useEndpointConfig(currentUser);
+  } = useEndpointConfig(currentUser, shareSession);
 
   const {currentAddress, basePath, goTo} = useKodoNavigator();
 
@@ -177,6 +183,50 @@ const Files: React.FC<FilesProps> = (props) => {
     }, {});
   }, [props.region?.storageClasses?.length]);
 
+  // bucket accelerate uploading
+  const [canAccelerateUploading, setCanAccelerateUploading] = useState<boolean>(false);
+  const [fetchingAccelerateUploading, setFetchingAccelerateUploading] = useState<boolean>(false);
+  const fetchAccelerateUploading = ({
+    needFeedback,
+    refreshCache,
+  }: {
+    needFeedback?: boolean,
+    refreshCache?: boolean,
+  } = {}) => {
+    if (!currentUser || !props.bucket || fetchingAccelerateUploading) {
+      return;
+    }
+    const opt = {
+      id: currentUser.accessKey,
+      secret: currentUser.accessSecret,
+      endpointType: currentUser.endpointType,
+    }
+    setFetchingAccelerateUploading(true);
+    let p = isAccelerateUploadingAvailable(
+      currentUser,
+      props.bucket?.name,
+      opt,
+      refreshCache,
+    );
+    if (needFeedback) {
+      p = toast.promise(p, {
+        loading: translate("common.refreshing"),
+        success: translate("common.refreshed"),
+        error: err => `${translate("common.failed")}: ${err}`,
+      });
+    }
+    p.then(setCanAccelerateUploading)
+      .catch(err => LocalLogger.error(err))
+      .finally(() => setFetchingAccelerateUploading(false));
+  };
+  const refreshCanAccelerateUploading = () => {
+    ipcUploadManager.clearRegionsCache();
+    fetchAccelerateUploading({
+      needFeedback: true,
+      refreshCache: true,
+    });
+  };
+
   // domains loader and selector
   const {
     loadDomainsState: {
@@ -195,7 +245,7 @@ const Files: React.FC<FilesProps> = (props) => {
       }
       return true;
     },
-    canDefaultS3Domain: !props.bucket?.grantedPermission,
+    canDefaultS3Domain: !bucketGrantedPermission,
     preferBackendMode: props.bucket?.preferBackendMode,
   });
   const [selectedDomain, setSelectedDomain] = useState<DomainAdapter | undefined>();
@@ -235,6 +285,15 @@ const Files: React.FC<FilesProps> = (props) => {
   ] = useDisplayModal<{filePaths: string[]}>({
     filePaths: []
   });
+  useEffect(() => {
+    if (!isShowUploadFilesConfirm) {
+      return;
+    }
+    ipcUploadManager.clearRegionsCache();
+    fetchAccelerateUploading({
+      refreshCache: true,
+    });
+  }, [isShowUploadFilesConfirm]);
 
   // handle upload and download
   const handleUploadFiles = async (filePaths: string[]) => {
@@ -294,13 +353,21 @@ const Files: React.FC<FilesProps> = (props) => {
       to: destDirectoryPath,
       from: remoteObjects.map(i => i.key),
     });
+    const domain = selectedDomain.name === NON_OWNED_DOMAIN.name
+      ? undefined
+      : selectedDomain;
     ipcDownloadManager.addJobs({
       remoteObjects,
       destPath: destDirectoryPath,
       downloadOptions: {
         region: currentRegion.s3Id,
         bucket: currentBucket.name,
-        domain: selectedDomain,
+        domain: domain,
+        urlStyle: getStyleForSignature({
+          domain: domain,
+          preferBackendMode,
+          currentEndpointType: currentUser.endpointType,
+        }),
         isOverwrite: appPreferencesData.overwriteDownloadEnabled,
         storageClasses: currentRegion.storageClasses,
         // userNatureLanguage needs mid-dash but i18n using lo_dash
@@ -310,6 +377,12 @@ const Files: React.FC<FilesProps> = (props) => {
       clientOptions: {
         accessKey: currentUser.accessKey,
         secretKey: currentUser.accessSecret,
+        sessionToken: shareSession?.sessionToken,
+        bucketNameId: shareSession
+          ? {
+            [shareSession.bucketName]: shareSession.bucketId,
+          }
+          : undefined,
         ucUrl: endpointConfigData.ucUrl,
         regions: endpointConfigData.regions.map(r => ({
           id: "",
@@ -329,7 +402,6 @@ const Files: React.FC<FilesProps> = (props) => {
         availableStorageClasses={availableStorageClasses}
         regionId={props.region?.s3Id}
         bucketName={props.bucket?.name}
-        bucketPermission={props.bucket?.grantedPermission}
         directoriesNumber={files.filter(f => FileItem.isItemFolder(f)).length}
         listedFileNumber={files.length}
         hasMoreFiles={hasMoreFiles}
@@ -385,7 +457,7 @@ const Files: React.FC<FilesProps> = (props) => {
         onReloadFiles={handleReloadFiles}
       />
       {
-        props.bucket?.grantedPermission === "readonly"
+        bucketGrantedPermission === "readonly"
           ? null
           : <DropZone
             className="files-upload-zone bg-body bg-opacity-75"
@@ -407,6 +479,8 @@ const Files: React.FC<FilesProps> = (props) => {
               destPath={basePath ?? ""}
               filePaths={filePathsForUploadConfirm}
               storageClasses={Object.values(availableStorageClasses ?? {})}
+              canAccelerateUploading={canAccelerateUploading}
+              onClickRefreshCanAccelerateUploading={() => refreshCanAccelerateUploading()}
             />
           </>
       }
